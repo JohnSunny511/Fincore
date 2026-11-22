@@ -176,7 +176,71 @@ Rollback and error handling will be incorporated to handle failed registration o
 
 
 
-new project using Visual studion 2022,ASP.NET Core Web Api, then give name and path,then untick configure https and create, then import system.data.sqlclient
 
 
-about dto, why dto instead of using one class for all
+Phase 2 – ASP.NET Core Web API Setup
+
+Technology: ASP.NET Core Web API · C# · ADO.NET · SQL Server · Stored Procedures · Swagger
+
+1. Web API Project Setup
+- Created ASP.NET Core Web API project using Visual Studio 2022.
+- new project using Visual studion 2022,ASP.NET Core Web Api, then give name and path,then untick configure https and create, then import system.data.sqlclient
+- Configured Program.cs for Controllers, Authorization and Swagger.
+- Used Swagger for API testing.
+- SQL Server connection configured inside DB classes.
+
+2. Created Models
+- Customerclss – Stores customer profile information and registration details used by the application.
+- Adminclss – Stores administrator profile and registration details.
+- Loginclss – Stores login credentials and login result information, including reg_id and role.
+
+3. Created DTOs
+- CustomerRegisterDTO – Receives customer registration details through the API.
+- AdminRegisterDTO – Receives admin registration details through the API.
+- LoginDTO – Receives username and password during login.
+DTOs are used to receive API request data, which is copied into the corresponding property classes before passing it to DB classes.
+
+4. Created DB Classes
+- AuthDBclss – Handles customer registration, admin registration and login operations using ADO.NET and stored procedures.
+- CustomerDBclss – Handles customer profile retrieval.
+Used SqlConnection, SqlCommand, SqlParameter methods through AddWithValue(), ExecuteScalar() and ExecuteReader() to interact with SQL Server.
+
+5. Created API Controllers
+- AuthController
+  - Customer registration.
+  - Admin registration.
+  - Login authentication.
+- CustomerController
+  - Retrieve customer profile using customer ID.
+
+6. API Endpoints Implemented
+Endpoint	Method	Purpose
+Auth/customerregister	POST	Register a customer
+Auth/adminregister	POST	Register an administrator
+Auth/login	POST	Authenticate a customer or admin
+Customer/getcustomer/{id}	GET	Retrieve customer profile
+
+7. Swagger Testing
+Successfully tested the following operations through Swagger:
+- Customer registration.
+- Admin registration.
+- Customer login.
+- Admin login.
+- Invalid login credentials.
+- Customer profile retrieval using customer ID.
+- Customer profile retrieval for a nonexistent ID.
+
+8. Implementation Approach
+Followed a simple Database First and ADO.NET approach:
+
+Models → DTOs → DB Classes → Controllers → Stored Procedures → Swagger Testing
+
+The API controllers receive request data through DTOs, transfer it into property classes and pass it to DB classes, which execute stored procedures in SQL Server.
+
+9. Next Phase
+Phase 3 – Account Management
+- Create account API.
+- Retrieve customer accounts.
+- Retrieve account details.
+- Retrieve account balance.
+- Manage account status.
