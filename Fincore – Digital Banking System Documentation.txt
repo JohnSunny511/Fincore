@@ -1,0 +1,182 @@
+# Fincore – Digital Banking System
+**Phase 1 – Database Creation (Database First)**
+
+**Technology:** ASP.NET Core Web API · C# · ADO.NET · SQL Server · Stored Procedures · Swagger
+
+## 1. Database
+Created SQL Server database `FincoreDB`.
+
+## 2. Created seven tables
+
+- **Customer** – Stores customer personal information such as name, age, email, phone and address.
+- **Admin** – Stores administrator information such as name and email.
+- **Login** – Stores username, password, registration ID and role for customer and admin authentication.
+- **Account** – Stores bank accounts, account numbers, balances, account types and statuses.
+- **Transactions** – Stores deposit, withdrawal and transfer records.
+- **Ledger** – Stores debit and credit entries associated with financial transactions.
+- **AuditLog** – Records important actions performed by customers and administrators.
+
+## 3. Database design concepts
+
+- Tables created without foreign key or CHECK constraints.
+- `Customer`, `Admin` and `Login` separated to distinguish profile information from authentication credentials.
+- `Login.reg_id` identifies the corresponding Customer or Admin based on `Login.role`.
+- `Account.customer_id` identifies the customer who owns the account.
+- `Transactions` records financial operations.
+- `Ledger` records account-level debit and credit entries.
+- `AuditLog` records important administrative operations.
+
+## 4. Financial transaction concepts
+
+- Deposits increase account balances and generate transaction and ledger records.
+- Withdrawals decrease account balances and generate transaction and ledger records.
+- Transfers update both accounts, create one transaction record and create two ledger records.
+- Transfers will use SQL transactions to maintain atomicity and consistency.
+
+## 5. Audit logging
+
+Audit records will be inserted directly inside relevant stored procedures instead of using triggers.
+
+
+## 6. Authentication design
+
+- A shared Login table is used for Customer and Admin authentication.
+- `reg_id` identifies the associated profile.
+- `role` distinguishes Customer from Admin.
+- JWT authentication and role-based authorization will be implemented in a later phase.
+
+
+Customer registration
+1. Customer submits their registration details.
+2. We insert their information into the Customer table.
+3. We create their login credentials in the Login table.
+4. The reg_id in Login is set to the newly created customer_id.
+5. The role is set to Customer.
+
+
+Admin registration
+1. Admin submits their registration details.
+2. We insert their information into the Admin table.
+3. We create their login credentials in the Login table.
+4. The reg_id in Login is set to the newly created admin_id.
+5. The role is set to Admin.
+
+
+Login
+1. The user submits username and password.
+2. The Login table is checked.
+3. If the credentials match, the system retrieves reg_id and role.
+4. The API identifies the user.
+5. Later, JWT will carry identity and role information for protected API access.
+
+
+Account creation
+1. A customer requests a new account.
+2. The Account table receives a new record.
+3. The account is associated with the customer through customer_id.
+4. The account receives a unique account number and initial balance.
+
+
+
+## 7. Implementation approach
+
+Database First – Tables → Stored Procedures → Models → DB Classes → Controllers → Swagger Testing.
+
+
+
+8. Created Stored Procedures
+
+Created stored procedures for customer registration, admin registration and login authentication.
+
+sp_CustomerRegister – Registers a new customer by inserting personal information into the Customer table and login credentials into the Login table.
+
+sp_AdminRegister – Registers a new administrator by inserting admin information into the Admin table and login credentials into the Login table.
+
+sp_Login – Validates the username and password and retrieves the associated reg_id and role.
+
+
+
+9. Customer Registration – sp_CustomerRegister
+
+Accepts customer details, including name, age, email, phone and address, along with username and password.
+
+Inserts the customer details into the Customer table.
+
+Retrieves the newly generated customer_id using SCOPE_IDENTITY().
+
+Inserts the login credentials into the Login table.
+
+Assigns the customer ID to Login.reg_id and sets the role to Customer.
+
+Uses a SQL transaction to group the customer and login insert operations.
+
+
+
+10. Admin Registration – sp_AdminRegister
+
+Accepts admin name, email, username and password.
+
+Inserts admin information into the Admin table.
+
+Retrieves the newly generated admin_id using SCOPE_IDENTITY().
+
+Inserts the login credentials into the Login table.
+
+Assigns the admin ID to Login.reg_id and sets the role to Admin.
+
+Uses a SQL transaction to group the admin and login insert operations.
+
+
+
+11. Login Authentication – sp_Login
+
+Accepts username and password.
+
+Checks the Login table for matching credentials.
+
+Retrieves reg_id and role if the credentials match.
+
+Returns the associated user identity and role to the application.
+
+Returns no records when the credentials are invalid.
+
+
+
+12. Stored Procedure Testing
+
+Stored procedures are designed to be tested directly in SQL Server Management Studio (SSMS) before integrating them into the Web API.
+
+Testing scenarios:
+
+Customer registration.
+
+Admin registration.
+
+Customer login with valid credentials.
+
+Admin login with valid credentials.
+
+Login with invalid credentials.
+
+Duplicate username handling.
+
+
+
+13. SQL Transaction Usage in Registration
+
+SQL transactions are used in customer and admin registration to group profile creation and login credential insertion.
+
+BEGIN TRANSACTION starts the transaction.
+
+COMMIT TRANSACTION saves both insert operations.
+
+Transaction handling ensures the profile and login records are treated as a single operation.
+
+Rollback and error handling will be incorporated to handle failed registration operations properly.
+
+
+
+new project using Visual studion 2022,ASP.NET Core Web Api, then give name and path,then untick configure https and create, then import system.data.sqlclient
+
+
+about dto, why dto instead of using one class for all
