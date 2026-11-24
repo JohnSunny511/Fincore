@@ -439,3 +439,76 @@ DTOs → Models → Stored Procedures → DB Classes → Controllers → Swagger
 
 ## 10. Outcome
 Fincore now supports deposits and withdrawals with corresponding transaction and ledger records, using SQL transactions to maintain database consistency.
+
+
+---------------------------------------------------------------------
+
+
+
+Phase 5: Fund Transfers
+
+## 1. Transfer DTO
+Created `TransferDTO.cs` to receive the source account ID, destination account ID, transfer amount and description.
+
+The DTO ensures that the API accepts only the information required for a transfer.
+
+## 2. Transaction Model
+Reused the existing `Transactionclss.cs` model to represent transfer information. No additional model was required.
+
+## 3. Stored Procedure – sp_Transfer
+Created `sp_Transfer` to handle fund transfers between two bank accounts.
+
+The procedure performs the following operations:
+
+- Validates the transfer amount.
+- Prevents transfers between the same account.
+- Checks whether both accounts exist and are active.
+- Checks the source account's available balance.
+- Deducts money from the source account.
+- Adds money to the destination account.
+- Inserts one record into the Transactions table.
+- Inserts two records into the Ledger table.
+
+Used SQL transactions with `BEGIN TRANSACTION`, `COMMIT` and `ROLLBACK` to maintain consistency.
+
+Used `UPDLOCK` and `HOLDLOCK` to protect account rows during transfer processing.
+
+## 4. Database Class
+Added `TransferDB()` to the existing `TransactionDBclss.cs`.
+
+The method executes `sp_Transfer` using ADO.NET and retrieves the generated transaction ID.
+
+## 5. API Controller
+Added the Transfer API to the existing `TransactionsController.cs`.
+
+## 6. API Endpoint
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/Transaction/transfer` | Transfer money between two accounts |
+
+## 7. Testing
+Successfully tested the transfer operation using SSMS and Swagger.
+
+Verified:
+- Source account balance deduction.
+- Destination account balance update.
+- Transaction record creation.
+- Debit and Credit ledger entries.
+- Invalid transfer rejection.
+- Insufficient balance prevention.
+- Account status verification.
+
+## 8. Banking Concepts Implemented
+- Fund transfers.
+- Atomic transactions.
+- Database locking.
+- Debit and Credit accounting entries.
+- Transaction consistency.
+- Rollback and error handling.
+
+## 9. Implementation Approach
+DTO → Existing Model → Stored Procedure → DB Class → Controller → Swagger Testing.
+
+## 10. Outcome
+Fincore now supports fund transfers between bank accounts. Each transfer updates both account balances, creates one transaction record and maintains two corresponding ledger entries.

@@ -56,6 +56,29 @@ namespace Fincore.Controllers
         }
 
 
+        // Transfer
+        [HttpPost]
+        [Route("transfer")]
+        public IActionResult Transfer(TransferDTO dto)
+        {
+            Transactionclss obj = new Transactionclss();
+
+            obj.from_account_id = dto.from_account_id;
+            obj.to_account_id = dto.to_account_id;
+            obj.amount = dto.amount;
+            obj.description = dto.description;
+
+            int transaction_id = dbobj.TransferDB(obj);
+
+            return Ok(new
+            {
+                message = "Transfer successful",
+                transaction_id = transaction_id
+            });
+        }
+
+
+
         // GET: api/<TransactionsController>
         [HttpGet]
         public IEnumerable<string> Get()
