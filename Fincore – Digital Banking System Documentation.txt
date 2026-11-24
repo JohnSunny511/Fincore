@@ -176,6 +176,8 @@ Rollback and error handling will be incorporated to handle failed registration o
 
 
 
+------------------------------------------------------------------
+
 
 
 Phase 2 – ASP.NET Core Web API Setup
@@ -270,3 +272,170 @@ Phase 3 – Account Management
 - Retrieve account details.
 - Retrieve account balance.
 - Manage account status.
+
+
+
+------------------------------------------------------------------
+
+
+Phase 3: Account Management
+
+1. Account Model
+Created Accountclss.cs to represent the Account table and its properties, including account ID, customer ID, account number, account type, balance, status and creation date.
+
+2. Account Creation DTO
+Created AccountCreateDTO.cs to receive only the customer ID and account type during account creation. Account number, initial balance, status and creation date are handled by the database.
+
+3. Account Status DTO
+Created AccountStatusDTO.cs to receive the account status when updating an account's status.
+
+4. Stored Procedures
+Created the following stored procedures:
+- sp_CreateAccount – Creates an account and generates an account number using a SQL Sequence.
+- sp_GetCustomerAccounts – Retrieves all accounts belonging to a customer.
+- sp_GetAccountDetails – Retrieves details of a specific account.
+- sp_GetAccountBalance – Retrieves the balance of an account.
+- sp_UpdateAccountStatus – Updates the status of an account.
+
+5. Database Class
+Created AccountDBclss.cs using ADO.NET and System.Data.SqlClient.
+
+Implemented methods:
+- CreateAccountDB
+- GetCustomerAccountsDB
+- GetAccountDetailsDB
+- GetAccountBalanceDB
+- UpdateAccountStatusDB
+The DB class communicates with SQL Server through stored procedures.
+
+6. API Controller
+Created AccountsController.cs to expose account-related APIs.
+
+7. API Endpoints
+Method	Endpoint	Purpose
+POST	/Account/createaccount	Create a new account
+GET	/Account/getcustomeraccounts/{customer_id}	Retrieve all customer accounts
+GET	/Account/getaccountdetails/{account_id}	Retrieve account details
+GET	/Account/getaccountbalance/{account_id}	Retrieve balance
+PUT	/Account/updatestatus/{account_id}	Update account status
+
+8. Testing
+Account creation, account retrieval, account details and balance retrieval APIs were successfully tested using Swagger.
+
+Account status update was added for testing in Swagger.
+
+9. Implementation Approach
+Models → DTOs → Stored Procedures → DB Classes → Controllers → Swagger Testing.
+
+10. Outcome
+Fincore now supports bank account creation, multiple accounts per customer, account information retrieval, balance retrieval and account status management.
+
+11. Technical Decisions and Concepts
+DTO Usage
+DTOs are not mandatory for every API. They are used when structured request or response data needs to be defined, or when controlling which properties the client can submit or receive.
+- No DTO: APIs such as Get Customer Accounts, Get Account Details and Get Account Balance require only a single ID, which can be passed through the URL and automatically mapped to a controller parameter by ASP.NET Core.
+- DTO required: Create Account accepts structured request data (customer_id and account_type) through the request body, so AccountCreateDTO is used.
+- Status update DTO: AccountStatusDTO restricts the request to the account status property.
+DTOs are introduced when they provide meaningful separation between API requests/responses and the underlying models, rather than creating unnecessary classes for simple parameters.
+
+Request DTOs control incoming data, while response DTOs can be used to control the data exposed by APIs. Response DTOs may become useful in later phases, particularly for transactions and account-related operations.
+Use of var
+The var keyword allows C# to automatically determine a variable's type from the value returned by an expression.
+
+For example:
+var accounts = dbobj.GetCustomerAccountsDB(customer_id);
+Since GetCustomerAccountsDB() returns List<Accountclss>, the variable accounts is automatically treated as a List<Accountclss>.
+
+This is equivalent to:
+List<Accountclss> accounts = dbobj.GetCustomerAccountsDB(customer_id);
+The DB method creates and populates the list of account objects, then returns it. The variable accounts stores the returned list.
+
+
+
+Route Parameters and DTO Binding
+In APIs such as account status updates, the account ID is passed through the URL (e.g., /Account/updatestatus/5), while the new status is sent through the JSON request body using AccountStatusDTO.
+[HttpPut]
+[Route("updatestatus/{account_id}")]
+
+ASP.NET Core automatically maps the URL value to the controller's route parameter (account_id) and maps the JSON body to the DTO object. The controller then passes both values to the DB class.
+
+This separates the resource being updated (identified by the URL) from the data being changed (provided through the DTO).
+
+
+
+
+----------------------------------------------------------------------
+
+
+
+Phase 4: Deposits and Withdrawals
+
+## 1. Transaction Model
+Created `Transactionclss.cs` to represent transaction information, including transaction ID, source account, destination account, transaction type, amount, status, description and transaction date.
+
+## 2. DTO Classes
+Created two DTO classes:
+
+- `DepositDTO.cs` – Receives account ID, deposit amount and description.
+- `WithdrawalDTO.cs` – Receives account ID, withdrawal amount and description.
+
+Separate DTOs were used to represent the two distinct banking operations.
+
+## 3. Stored Procedures
+
+### sp_Deposit
+- Increases the account balance.
+- Inserts a Deposit record into the Transactions table.
+- Inserts a Credit entry into the Ledger table.
+- Uses SQL transactions to ensure all operations succeed or roll back together.
+
+### sp_Withdraw
+- Checks whether the account is active and has sufficient balance.
+- Deducts the withdrawal amount from the account.
+- Inserts a Withdrawal record into the Transactions table.
+- Inserts a Debit entry into the Ledger table.
+- Uses SQL transactions to maintain consistency.
+
+## 4. Database Class
+Created `TransactionDBclss.cs` using ADO.NET and `System.Data.SqlClient`.
+
+Implemented methods:
+- `DepositDB()`
+- `WithdrawDB()`
+
+Both methods execute their respective stored procedures and retrieve the generated transaction ID.
+
+## 5. API Controller
+Created `TransactionsController.cs` to handle deposit and withdrawal operations.
+
+## 6. API Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/Transaction/deposit` | Deposit money into an account |
+| POST | `/Transaction/withdraw` | Withdraw money from an account |
+
+## 7. Testing
+Both APIs were successfully tested using Swagger.
+
+Verified:
+- Account balance updates.
+- Transaction records are inserted.
+- Ledger entries are created.
+- Invalid amounts are rejected.
+- Insufficient balance withdrawals are rejected.
+- Blocked accounts cannot perform these operations.
+
+## 8. Banking Concepts Implemented
+- SQL transactions and rollback.
+- Balance management.
+- Debit and credit ledger entries.
+- Transaction recording.
+- Insufficient balance prevention.
+- Account status checks.
+
+## 9. Implementation Approach
+DTOs → Models → Stored Procedures → DB Classes → Controllers → Swagger Testing.
+
+## 10. Outcome
+Fincore now supports deposits and withdrawals with corresponding transaction and ledger records, using SQL transactions to maintain database consistency.
