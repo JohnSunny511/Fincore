@@ -512,3 +512,71 @@ DTO → Existing Model → Stored Procedure → DB Class → Controller → Swag
 
 ## 10. Outcome
 Fincore now supports fund transfers between bank accounts. Each transfer updates both account balances, creates one transaction record and maintains two corresponding ledger entries.
+
+
+
+------------------------------------------------------------------------
+
+
+
+
+
+Phase 6: Transaction History
+
+## 1. Transaction Model
+Reused the existing `Transactionclss.cs` model to represent transaction information.
+
+No additional model was required.
+
+## 2. DTO Decision
+No request DTOs were created because both operations require only an ID through the URL.
+
+The existing Transaction model is used to return the transaction information.
+
+## 3. Stored Procedures
+
+### sp_GetAccountTransactions
+- Retrieves all transactions associated with a particular account.
+- Checks both `from_account_id` and `to_account_id`.
+- Retrieves deposits, withdrawals and transfers.
+- Sorts records by transaction date in descending order.
+
+### sp_GetTransactionDetails
+- Retrieves an individual transaction using its transaction ID.
+- Returns transaction details including source account, destination account, type, amount, status, description and date.
+
+## 4. Database Class
+Added two methods to the existing `TransactionDBclss.cs`:
+
+- `GetAccountTransactionsDB()`
+- `GetTransactionDetailsDB()`
+
+Used ADO.NET and `SqlDataReader` to retrieve transaction records.
+
+Handled nullable account IDs using `DBNull.Value`.
+
+## 5. API Controller
+Added two GET endpoints to the existing `TransactionsController.cs`.
+
+## 6. API Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/Transaction/getaccounttransactions/{account_id}` | Retrieve account transaction history |
+| GET | `/Transaction/gettransactiondetails/{transaction_id}` | Retrieve individual transaction details |
+
+## 7. Testing
+Both APIs were successfully tested using Swagger.
+
+Verified:
+- Retrieval of account transaction history.
+- Retrieval of individual transaction details.
+- Deposit, withdrawal and transfer records.
+- Handling of nonexistent transaction IDs.
+- Handling of accounts without transactions.
+
+## 8. Implementation Approach
+Existing Model → Stored Procedures → DB Class → Controller → Swagger Testing.
+
+## 9. Outcome
+Fincore now supports retrieving complete transaction histories for individual accounts and viewing the details of specific financial transactions.

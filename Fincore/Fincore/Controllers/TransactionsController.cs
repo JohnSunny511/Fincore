@@ -79,6 +79,36 @@ namespace Fincore.Controllers
 
 
 
+        // Get Account Transactions
+        [HttpGet]
+        [Route("getaccounttransactions/{account_id}")]
+        public IActionResult GetAccountTransactions(int account_id)
+        {
+            var transactions = dbobj.GetAccountTransactionsDB(account_id);
+
+            if (transactions.Count == 0)
+                return NotFound(new { message = "No transactions found for this account" });
+
+            return Ok(transactions);
+        }
+
+
+        // Get Transaction Details
+        [HttpGet]
+        [Route("gettransactiondetails/{transaction_id}")]
+        public IActionResult GetTransactionDetails(int transaction_id)
+        {
+            var transaction = dbobj.GetTransactionDetailsDB(transaction_id);
+
+            if (transaction.transaction_id == 0)
+                return NotFound(new { message = "Transaction not found" });
+
+            return Ok(transaction);
+        }
+
+
+
+
         // GET: api/<TransactionsController>
         [HttpGet]
         public IEnumerable<string> Get()
