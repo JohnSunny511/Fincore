@@ -580,3 +580,75 @@ Existing Model → Stored Procedures → DB Class → Controller → Swagger Tes
 
 ## 9. Outcome
 Fincore now supports retrieving complete transaction histories for individual accounts and viewing the details of specific financial transactions.
+
+
+
+------------------------------------------------------------------
+
+
+
+
+Phase 7: Ledger Management
+
+## 1. Ledger Model
+Created `Ledgerclss.cs` to represent the Ledger table.
+
+Properties include:
+- ledger_id
+- transaction_id
+- account_id
+- entry_type
+- amount
+- created_date
+
+## 2. DTO Decision
+No request DTOs were created because both APIs require only an ID through the URL.
+
+The Ledger model is used to represent and return ledger records.
+
+## 3. Stored Procedures
+
+### sp_GetAccountLedger
+- Retrieves all ledger entries associated with a particular account.
+- Returns Debit and Credit entries.
+- Sorts entries by creation date in descending order.
+
+### sp_GetTransactionLedger
+- Retrieves all ledger entries associated with a particular transaction.
+- Useful for viewing both sides of a fund transfer.
+- Sorts entries by ledger ID.
+
+## 4. Database Class
+Created `LedgerDBclss.cs` using ADO.NET and `System.Data.SqlClient`.
+
+Implemented methods:
+- `GetAccountLedgerDB()`
+- `GetTransactionLedgerDB()`
+
+Used `SqlDataReader` and `List<Ledgerclss>` to retrieve multiple ledger records.
+
+## 5. API Controller
+Created `LedgerController.cs` to expose ledger retrieval APIs.
+
+## 6. API Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/Ledger/getaccountledger/{account_id}` | Retrieve account ledger |
+| GET | `/Ledger/gettransactionledger/{transaction_id}` | Retrieve transaction ledger |
+
+## 7. Testing
+Both APIs were successfully tested using Swagger.
+
+Verified:
+- Account ledger retrieval.
+- Transaction ledger retrieval.
+- Debit and Credit entries for fund transfers.
+- Multiple ledger entries for a single transaction.
+- Handling of nonexistent ledger records.
+
+## 8. Implementation Approach
+Model → Stored Procedures → DB Class → Controller → Swagger Testing.
+
+## 9. Outcome
+Fincore now supports retrieving account-level and transaction-level ledger entries, providing visibility into the debit and credit effects of financial transactions.
