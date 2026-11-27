@@ -63,6 +63,7 @@ namespace Fincore.DBclasses
 
             if (sdr.Read())
             {
+                login.login_id = Convert.ToInt32(sdr["login_id"]);
                 login.reg_id = Convert.ToInt32(sdr["reg_id"]);
                 login.role = sdr["role"].ToString();
             }

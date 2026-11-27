@@ -1,6 +1,8 @@
 ﻿using Fincore.DBclasses;
 using Fincore.Models.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -8,11 +10,29 @@ namespace Fincore.Controllers
 {
     [Route("Admin")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class AdminController : ControllerBase
     {
         AdminDBclss dbobj = new AdminDBclss();
         CustomerDBclss custdb = new CustomerDBclss();
         AccountDBclss accdb = new AccountDBclss();
+
+
+
+        private int GetLoginId()
+        {
+            return Convert.ToInt32(
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            );
+        }
+
+        private string GetUserRole()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        }
+
+
+
 
         // Get All Customers
         [HttpGet]
@@ -78,12 +98,20 @@ namespace Fincore.Controllers
 
         // Update Account Status
         [HttpPut]
-        [Route("updatestatus/{account_id}")]
         public IActionResult UpdateAccountStatus(int account_id, AccountStatusDTO dto)
         {
+            // Validate account status
+            if (dto.account_status != "Active" &&
+                dto.account_status != "Blocked")
+            {
+                return BadRequest(new { message = "Invalid account status" });
+            }
+
             int rows = accdb.UpdateAccountStatusDB(
                 account_id,
-                dto.account_status
+                dto.account_status,
+                GetLoginId(),
+                GetUserRole()
             );
 
             if (rows == 0)
@@ -94,5 +122,6 @@ namespace Fincore.Controllers
                 message = "Account status updated successfully"
             });
         }
+
     }
 }

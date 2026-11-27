@@ -9,11 +9,13 @@ namespace Fincore.DBclasses
         SqlConnection con = new SqlConnection(@"server=LAPTOP-QK9QR22V\SQLEXPRESS;database=FincoreDB;Integrated Security=true;");
 
         // Deposit
-        public int DepositDB(Transactionclss obj)
+        public int DepositDB(Transactionclss obj, int user_id, string role)
         {
             SqlCommand cmd = new SqlCommand("sp_Deposit", con);
             cmd.CommandType = CommandType.StoredProcedure;
 
+            cmd.Parameters.AddWithValue("@user_id", user_id);
+            cmd.Parameters.AddWithValue("@role", role);
             cmd.Parameters.AddWithValue("@account_id", obj.to_account_id);
             cmd.Parameters.AddWithValue("@amount", obj.amount);
             cmd.Parameters.AddWithValue("@description", obj.description ?? "");
@@ -26,11 +28,13 @@ namespace Fincore.DBclasses
         }
 
         // Withdrawal
-        public int WithdrawDB(Transactionclss obj)
+        public int WithdrawDB(Transactionclss obj, int user_id, string role)
         {
             SqlCommand cmd = new SqlCommand("sp_Withdraw", con);
             cmd.CommandType = CommandType.StoredProcedure;
 
+            cmd.Parameters.AddWithValue("@user_id", user_id);
+            cmd.Parameters.AddWithValue("@role", role);
             cmd.Parameters.AddWithValue("@account_id", obj.from_account_id);
             cmd.Parameters.AddWithValue("@amount", obj.amount);
             cmd.Parameters.AddWithValue("@description", obj.description ?? "");
@@ -43,11 +47,13 @@ namespace Fincore.DBclasses
         }
 
         // Transfer
-        public int TransferDB(Transactionclss obj)
+        public int TransferDB(Transactionclss obj, int user_id, string role)
         {
             SqlCommand cmd = new SqlCommand("sp_Transfer", con);
             cmd.CommandType = CommandType.StoredProcedure;
 
+            cmd.Parameters.AddWithValue("@user_id", user_id);
+            cmd.Parameters.AddWithValue("@role", role);
             cmd.Parameters.AddWithValue("@from_account_id", obj.from_account_id);
             cmd.Parameters.AddWithValue("@to_account_id", obj.to_account_id);
             cmd.Parameters.AddWithValue("@amount", obj.amount);
@@ -140,6 +146,24 @@ namespace Fincore.DBclasses
         }
 
 
+        public bool IsTransactionOwnedByCustomerDB(int transaction_id, int customer_id)
+        {
+            SqlCommand cmd = new SqlCommand(
+                "sp_CheckTransactionOwnership", con);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@transaction_id", transaction_id);
+            cmd.Parameters.AddWithValue("@customer_id", customer_id);
+
+            con.Open();
+
+            int result = Convert.ToInt32(cmd.ExecuteScalar());
+
+            con.Close();
+
+            return result > 0;
+        }   
 
     }
 }

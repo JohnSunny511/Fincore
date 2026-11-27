@@ -103,20 +103,39 @@ namespace Fincore.DBclasses
         }
 
 
-        // Update Account Status
-        public int UpdateAccountStatusDB(int account_id, string account_status)
+        public int UpdateAccountStatusDB(int account_id, string account_status, int user_id, string role)
         {
             SqlCommand cmd = new SqlCommand("sp_UpdateAccountStatus", con);
             cmd.CommandType = CommandType.StoredProcedure;
 
             cmd.Parameters.AddWithValue("@account_id", account_id);
             cmd.Parameters.AddWithValue("@account_status", account_status);
+            cmd.Parameters.AddWithValue("@user_id", user_id);
+            cmd.Parameters.AddWithValue("@role", role);
 
             con.Open();
-            int rows = cmd.ExecuteNonQuery();
+            int result = Convert.ToInt32(cmd.ExecuteScalar());
             con.Close();
 
-            return rows;
+            return result;
+        }
+
+
+        public bool IsAccountOwnedByCustomerDB(int account_id, int customer_id)
+        {
+            SqlCommand cmd = new SqlCommand("sp_CheckAccountOwnership", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@account_id", account_id);
+            cmd.Parameters.AddWithValue("@customer_id", customer_id);
+
+            con.Open();
+
+            int result = Convert.ToInt32(cmd.ExecuteScalar());
+
+            con.Close();
+
+            return result > 0;
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 using Fincore.DBclasses;    
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -7,21 +9,32 @@ namespace Fincore.Controllers
 {
     [Route("customer")]
     [ApiController]
+    [Authorize(Roles = "Customer")]
     public class CustomerController : ControllerBase
     {
         CustomerDBclss dbobj = new CustomerDBclss();
 
         // GET: api/<CustomerController>
-        [HttpGet]
-        [Route("getcustomer/{id}")]
+        [HttpGet("getcustomer/{id}")]
         public IActionResult GetCustomer(int id)
         {
-            var customer = dbobj.GetCustomerDB(id);
-            if(customer.customer_id == 0)
+            int customer_id = Convert.ToInt32(
+                User.FindFirst("reg_id")?.Value
+            );
+
+            if (id != customer_id)
             {
-                return NotFound(new { message = "Customer not found" });
+                return Forbid();
             }
-            return Ok(customer);
+
+            var data = dbobj.GetCustomerDB(id);
+
+            if (data.customer_id == 0)
+            {
+                return NotFound("Customer not found");
+            }
+
+            return Ok(data);
         }
 
         // GET api/<CustomerController>/5

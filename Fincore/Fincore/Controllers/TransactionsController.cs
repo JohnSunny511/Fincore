@@ -2,6 +2,9 @@
 using Fincore.Models;
 using Fincore.Models.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Data.SqlClient;
+using System.Security.Claims;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -14,18 +17,48 @@ namespace Fincore.Controllers
 
         TransactionDBclss dbobj = new TransactionDBclss();
 
+
+        AccountDBclss accdb = new AccountDBclss();
+
+        private int GetCustomerId()
+        {
+            return Convert.ToInt32(User.FindFirst("reg_id")?.Value);
+        }
+
+
+        private int GetLoginId()
+        {
+            return Convert.ToInt32(
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            );
+        }
+
+        private string GetUserRole()
+        {
+            return User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+        }
+
+
         // Deposit
         [HttpPost]
         [Route("deposit")]
+        [Authorize(Roles = "Customer")]
         public IActionResult Deposit(DepositDTO dto)
         {
+            
             Transactionclss obj = new Transactionclss();
 
             obj.to_account_id = dto.account_id;
             obj.amount = dto.amount;
             obj.description = dto.description;
 
-            int transaction_id = dbobj.DepositDB(obj);
+            if (!accdb.IsAccountOwnedByCustomerDB(dto.account_id, GetCustomerId()))
+            {
+                return Forbid();
+            }
+
+
+            int transaction_id = dbobj.DepositDB(obj, GetLoginId(), GetUserRole());
 
             return Ok(new
             {
@@ -38,6 +71,7 @@ namespace Fincore.Controllers
         // Withdrawal
         [HttpPost]
         [Route("withdraw")]
+        [Authorize(Roles = "Customer")]
         public IActionResult Withdraw(WithdrawalDTO dto)
         {
             Transactionclss obj = new Transactionclss();
@@ -46,19 +80,44 @@ namespace Fincore.Controllers
             obj.amount = dto.amount;
             obj.description = dto.description;
 
-            int transaction_id = dbobj.WithdrawDB(obj);
-
-            return Ok(new
+            if (!accdb.IsAccountOwnedByCustomerDB(
+                dto.account_id, GetCustomerId()))
             {
-                message = "Withdrawal successful",
-                transaction_id = transaction_id
-            });
+                return Forbid();
+            }
+
+            try
+            {
+                int transaction_id = dbobj.WithdrawDB(obj, GetLoginId(), GetUserRole());
+
+                return Ok(new
+                {
+                    message = "Withdrawal successful",
+                    transaction_id = transaction_id
+                });
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 50002)
+                {
+                    return Conflict(new
+                    {
+                        message = "Withdrawal failed. Account may be inactive or have insufficient balance."
+                    });
+                }
+
+                return StatusCode(500, new
+                {
+                    message = "An unexpected database error occurred."
+                });
+            }
         }
 
 
         // Transfer
         [HttpPost]
         [Route("transfer")]
+        [Authorize(Roles = "Customer")]
         public IActionResult Transfer(TransferDTO dto)
         {
             Transactionclss obj = new Transactionclss();
@@ -68,13 +127,37 @@ namespace Fincore.Controllers
             obj.amount = dto.amount;
             obj.description = dto.description;
 
-            int transaction_id = dbobj.TransferDB(obj);
-
-            return Ok(new
+            if (!accdb.IsAccountOwnedByCustomerDB(
+                dto.from_account_id, GetCustomerId()))
             {
-                message = "Transfer successful",
-                transaction_id = transaction_id
-            });
+                return Forbid();
+            }
+
+            try
+            {
+                int transaction_id = dbobj.TransferDB(obj, GetLoginId(), GetUserRole());
+
+                return Ok(new
+                {
+                    message = "Transfer successful",
+                    transaction_id = transaction_id
+                });
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 50003)
+                {
+                    return Conflict(new
+                    {
+                        message = "Transfer failed. Check account status, balance and transfer details."
+                    });
+                }
+
+                return StatusCode(500, new
+                {
+                    message = "An unexpected database error occurred."
+                });
+            }
         }
 
 
@@ -82,8 +165,13 @@ namespace Fincore.Controllers
         // Get Account Transactions
         [HttpGet]
         [Route("getaccounttransactions/{account_id}")]
+        [Authorize(Roles = "Customer")]
         public IActionResult GetAccountTransactions(int account_id)
         {
+            if (!accdb.IsAccountOwnedByCustomerDB(account_id, GetCustomerId()))
+            {
+                return Forbid();
+            }
             var transactions = dbobj.GetAccountTransactionsDB(account_id);
 
             if (transactions.Count == 0)
@@ -96,8 +184,14 @@ namespace Fincore.Controllers
         // Get Transaction Details
         [HttpGet]
         [Route("gettransactiondetails/{transaction_id}")]
+        [Authorize(Roles = "Customer")]
         public IActionResult GetTransactionDetails(int transaction_id)
         {
+            if (!dbobj.IsTransactionOwnedByCustomerDB(transaction_id, GetCustomerId()))
+            {
+                return Forbid();
+            }
+
             var transaction = dbobj.GetTransactionDetailsDB(transaction_id);
 
             if (transaction.transaction_id == 0)

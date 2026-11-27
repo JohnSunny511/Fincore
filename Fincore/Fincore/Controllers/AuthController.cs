@@ -1,112 +1,123 @@
-﻿using Fincore.DBclasses;
+﻿
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
 using Fincore.Models;
 using Fincore.Models.DTOs;
-using Microsoft.AspNetCore.Mvc;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+using Fincore.DBclasses;
 
 namespace Fincore.Controllers
 {
-    [Route("auth")]
+    [Route("Auth")]
     [ApiController]
     public class AuthController : ControllerBase
     {
-
         AuthDBclss dbobj = new AuthDBclss();
 
-        // GET: api/<AuthController>
-        [HttpGet]
-        public IEnumerable<string> Get()
+        private readonly IConfiguration _configuration;
+
+        public AuthController(IConfiguration configuration)
         {
-            return new string[] { "value1", "value2" };
+            _configuration = configuration;
         }
 
-        // GET api/<AuthController>/5
-        [HttpGet("{id}")]
-        public string Get(int id)
+        [HttpPost("customerregister")]
+        public IActionResult CustomerRegister(CustomerRegisterDTO obj)
         {
-            return "value";
-        }
+            Customerclss cobj = new Customerclss();
 
-        // POST api/<AuthController>
-        //Customer Registration
-        [HttpPost]
-        [Route("customerregister")]
-        public IActionResult CustomerRegister([FromBody] CustomerRegisterDTO createdto)
-        {
-            Customerclss cust = new Customerclss();
+            cobj.customer_name = obj.customer_name;
+            cobj.age = obj.age;
+            cobj.email = obj.email;
+            cobj.phone = obj.phone;
+            cobj.address = obj.address;
+            cobj.username = obj.username;
+            cobj.password = obj.password;
 
-            cust.customer_name = createdto.customer_name;
-            cust.age = createdto.age;
-            cust.email = createdto.email;
-            cust.phone = createdto.phone;
-            cust.address = createdto.address;
-            cust.username = createdto.username;
-            cust.password = createdto.password;
-
-            int id = dbobj.CustomerRegisterDB(cust);
+            int id = dbobj.CustomerRegisterDB(cobj);
 
             return Ok(new { message = "Customer registered successfully", customer_id = id });
         }
 
-
-        // Admin Registration
-        [HttpPost]
-        [Route("adminregister")]
-        public IActionResult AdminRegister([FromBody] AdminRegisterDTO createdto)
+        [HttpPost("adminregister")]
+        public IActionResult AdminRegister(AdminRegisterDTO obj)
         {
-            Adminclss adm = new Adminclss();
+            Adminclss aobj = new Adminclss();
 
-            adm.admin_name = createdto.admin_name;
-            adm.admin_email = createdto.admin_email;
-            adm.username = createdto.username;
-            adm.password = createdto.password;
+            aobj.admin_name = obj.admin_name;
+            aobj.admin_email = obj.admin_email;
+            aobj.username = obj.username;
+            aobj.password = obj.password;
 
-            int id = dbobj.AdminRegisterDB(adm);
+            int id = dbobj.AdminRegisterDB(aobj);
 
             return Ok(new { message = "Admin registered successfully", admin_id = id });
         }
 
-
-
-        // Login
-        [HttpPost]
-        [Route("login")]
-        public IActionResult Login([FromBody] LoginDTO createdto)
+        [HttpPost("login")]
+        public IActionResult Login(LoginDTO obj)
         {
-            Loginclss log = new Loginclss();
+            Loginclss lobj = new Loginclss();
 
-            log.username = createdto.username;
-            log.password = createdto.password;
+            lobj.username = obj.username;
+            lobj.password = obj.password;
 
-            Loginclss result = dbobj.LoginDB(log);
+            var user = dbobj.LoginDB(lobj);
 
-            if (result.reg_id != 0)
+            if (user.reg_id != 0)
             {
-                return Ok(new
+                var authClaims = new List<Claim>
                 {
-                    message = "Login successful",
-                    reg_id = result.reg_id,
-                    role = result.role
-                });
+                    new Claim(ClaimTypes.NameIdentifier, user.login_id.ToString()),
+                    new Claim("reg_id", user.reg_id.ToString()),
+                    new Claim(ClaimTypes.Role, user.role!),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                };
+
+                var token = CreateToken(authClaims);
+
+                TokenResponseDTO response = new TokenResponseDTO();
+
+                response.token = new JwtSecurityTokenHandler().WriteToken(token);
+                response.login_id = user.login_id;
+                response.reg_id = user.reg_id;
+                response.role = user.role;
+
+                return Ok(response);
             }
             else
             {
-                return Ok(new { message = "Invalid login" });
+                return Unauthorized("Invalid username or password");
             }
         }
 
-
-        // PUT api/<AuthController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
+        private JwtSecurityToken CreateToken(List<Claim> authClaims)
         {
-        }
+            var authSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]!)
+            );
 
-        // DELETE api/<AuthController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
+            int.TryParse(
+                _configuration["JWT:TokenValidityInMinutes"],
+                out int tokenValidityInMinutes
+            );
+
+            var token = new JwtSecurityToken
+            (
+                issuer: _configuration["JWT:ValidIssuer"],
+                audience: _configuration["JWT:ValidAudience"],
+                expires: DateTime.UtcNow.AddMinutes(tokenValidityInMinutes),
+                claims: authClaims,
+                signingCredentials: new SigningCredentials(
+                    authSigningKey,
+                    SecurityAlgorithms.HmacSha256
+                )
+            );
+
+            return token;
         }
     }
 }
