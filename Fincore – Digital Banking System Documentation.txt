@@ -652,3 +652,55 @@ Model → Stored Procedures → DB Class → Controller → Swagger Testing.
 
 ## 9. Outcome
 Fincore now supports retrieving account-level and transaction-level ledger entries, providing visibility into the debit and credit effects of financial transactions.
+
+
+
+----------------------------------------------------------------------
+
+
+
+
+Phase 8: Admin APIs and Dashboard
+
+## Objective
+Implemented administrator APIs to manage customers, bank accounts, transactions, account status and view banking statistics.
+
+## Stored Procedures
+- `sp_GetAllCustomers` – Retrieves all registered customers.
+- `sp_GetAllAccounts` – Retrieves all bank accounts.
+- `sp_GetAllTransactions` – Retrieves all transactions.
+- `sp_GetBankStatistics` – Retrieves overall banking statistics.
+
+## C# Implementation
+
+**AdminDashboardDTO**
+- Created to represent aggregated dashboard statistics.
+- Includes customer count, account count, active and blocked accounts, deposits, withdrawals and transfers.
+
+**AdminDBclss**
+- Implemented database methods for retrieving customers, accounts, transactions and dashboard statistics.
+- Reused existing models and the SQL Server connection approach.
+
+**AdminController**
+Implemented the following endpoints:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/Admin/getallcustomers` | View all customers |
+| GET | `/Admin/getcustomerdetails/{customer_id}` | View customer details |
+| GET | `/Admin/getallaccounts` | View all accounts |
+| GET | `/Admin/getalltransactions` | View all transactions |
+| GET | `/Admin/getbankstatistics` | View dashboard statistics |
+| PUT | `/Admin/updatestatus/{account_id}` | Update account status |
+
+## DTO Decisions
+- `AdminDashboardDTO` was introduced for aggregated statistics.
+- Existing `AccountStatusDTO` was reused for account status updates.
+- Existing Customer, Account and Transaction models were reused for GET responses.
+- No additional DTOs were required for simple GET operations.
+
+## Testing
+All six administrator APIs were tested successfully using Swagger.
+
+## Outcome
+Completed the administrator API module. JWT authentication and role-based authorization will be implemented in the next phase to protect administrator endpoints and customer resources.
